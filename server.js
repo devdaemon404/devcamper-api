@@ -32,6 +32,10 @@ if (process.env.NODE_ENV === 'development') {
 //File uploading middleware
 app.use(fileupload());
 
+//Set static folder
+
+app.use(express.static(`${__dirname}/public`))
+
 //Mount routers
 app.use('/api/v1/bootcamps', bootcamps);
 app.use('/api/v1/courses', courses);
