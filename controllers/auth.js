@@ -67,6 +67,48 @@ exports.getMe = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * @desc    Update user details
+ * @route   PUT /api/v1/auth/updatedetails
+ * @access  Private
+ */
+exports.updateDetails = asyncHandler(async (req, res, next) => {
+  const { name, email } = req.body;
+  const fieldsToUpdate = {
+    name,
+    email,
+  };
+
+  const user = await User.findByIdAndUpdate(req.user._id, fieldsToUpdate, {
+    new: true,
+    runValidators: true,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: user,
+  });
+});
+
+/**
+ * @desc    Update password
+ * @route   PUT /api/v1/auth/updatepassword
+ * @access  Private
+ */
+exports.updatePassword = asyncHandler(async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+  const user = await User.findById(req.user._id).select('+password');
+
+  //Check current password
+  if (!(await user.matchPassword(currentPassword))) {
+    return next(new ErrorResponse('Password is incorrect', 401));
+  }
+
+  user.password = newPassword;
+  await user.save();
+  sendTokenResponse(user, 200, res);
+});
+
+/**
  * @desc    Forgot password
  * @route   POST /api/v1/auth/forgotpassword
  * @access  Public
@@ -97,7 +139,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
       subject: 'Password reset token',
       message,
     });
-    res.status(200).json({ success: true, data: 'Email sent' });
+    return res.status(200).json({ success: true, data: 'Email sent' });
   } catch (error) {
     console.log(error);
     user.resetPasswordToken = undefined;
@@ -107,11 +149,6 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 
     return next(new ErrorResponse('Email could not be sent', 500));
   }
-
-  res.status(200).json({
-    success: true,
-    data: user,
-  });
 });
 
 /**
